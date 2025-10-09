@@ -19,7 +19,6 @@ BLOB_READ_WRITE_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN")
 FONT_FILE = os.path.join(basedir, "NotoSansJP-Regular.ttf")
 
 # --- Data ---
-# 日本語のテキストデータ
 JAPANESE_TEXT = {
     "title": "生活オリエンテーションの確認書",
     "items": [
@@ -31,8 +30,6 @@ JAPANESE_TEXT = {
         "６ 出入国又は労働に関する法令の規定に違反していることを知ったときの対応方法その他私の法的保護に必要な事項"
     ]
 }
-
-# 翻訳済みテキストデータ
 TRANSLATIONS = {
     "en": {
         "title": "Confirmation of Living Orientation",
@@ -105,24 +102,21 @@ TRANSLATIONS = {
         "submit_button": "ส่งลายมือชื่อและดำเนินการต่อ"
     }
 }
-
 EXPLAINERS = {
     "vi": ["PHAM VAN THINH", "HOANG ANH NAM"],
     "id": ["PETRI SURYANI", "IMELDA SARIHUTAJULU", "FEBRI SAHRULLAH AHDIN", "MARISYA UTARI", "MOHAMMAD FARID HIDAYATULLAH", "VANESSA KOBAYASHI"],
     "my": ["PYO EAINDRAY MIN", "PHYOWAI ZAW"],
-    "jp": ["西野 宏"],
-    "en": []
+    "jp": ["西野 宏","土屋 雛子"],
+    "en": ["土屋 雛子"]
 }
 
-
-# --- Routes ---
+# --- Routes (変更なし) ---
 @app.route('/')
 def language_select():
     provided_token = request.args.get('token')
     if provided_token != SECRET_TOKEN:
         return "アクセス権がありません。", 403
     return render_template('language_select.html', token=provided_token)
-
 
 @app.route('/guidance', methods=['POST'])
 def guidance_page():
@@ -140,21 +134,17 @@ def guidance_page():
         japanese_text=JAPANESE_TEXT
     )
 
-
 @app.route('/sign', methods=['POST'])
 def sign():
     provided_token = request.form.get('token')
     lang = request.form.get('lang')
     if provided_token != SECRET_TOKEN:
         return "不正なアクセスです。", 403
-
     signature_data_url = request.form.get('signature_data')
     if not signature_data_url:
         return redirect(url_for('language_select', token=provided_token))
-
     timestamp = datetime.datetime.now()
     filename = f"signature_living_orientation_{timestamp.strftime('%Y%m%d_%H%M%S')}.png"
-
     try:
         header, encoded = signature_data_url.split(",", 1)
         image_data = base64.b64decode(encoded)
@@ -171,9 +161,7 @@ def sign():
     except Exception as e:
         print(f"Error uploading signature to Blob: {e}")
         return "署名画像のアップロードに失敗しました。", 500
-
     return redirect(url_for('download_page', signature_url=public_url, lang=lang))
-
 
 @app.route('/download')
 def download_page():
@@ -189,7 +177,7 @@ def download_page():
         explainers=unique_explainers
     )
 
-
+# --- PDF生成関数 (レイアウト修正版) ---
 @app.route('/generate-pdf', methods=['POST'])
 def generate_pdf():
     signature_url = request.form.get('signature_url')
@@ -212,16 +200,17 @@ def generate_pdf():
     pdf.add_page()
     pdf.add_font('NotoSansJP', '', FONT_FILE)
 
-    # --- PDFレイアウト (生活オリエンテーション用に変更) ---
+    # --- PDFレイアウト ---
     pdf.set_font('NotoSansJP', '', 10)
-    pdf.cell(0, 10, '参考様式第５－８号', align='R') # 様式番号を変更
-    pdf.ln(20)
+    pdf.set_xy(pdf.l_margin, 10)
+    pdf.cell(0, 10, '参考様式第５－８号', align='L') # 左上に配置
+
+    pdf.set_xy(0, 25) # Y座標を調整
     pdf.set_font('NotoSansJP', '', 16)
-    pdf.cell(0, 10, '生 活 オ リ エ ン テ ー シ ョ ン の 確 認 書', new_x="LMARGIN", new_y="NEXT", align='C') # タイトルを変更
-    pdf.ln(12)
+    pdf.cell(0, 10, '生 活 オ リ エ ン テ ー シ ョ ン の 確 認 書', new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.ln(10) # 間隔を調整
+
     pdf.set_font('NotoSansJP', '', 10.5)
-    
-    # リスト項目を更新
     list_items = [
         ("１", JAPANESE_TEXT["items"][0][2:]),
         ("２", JAPANESE_TEXT["items"][1][2:]),
@@ -230,38 +219,61 @@ def generate_pdf():
         ("５", JAPANESE_TEXT["items"][4][2:]),
         ("６", JAPANESE_TEXT["items"][5][2:])
     ]
-
     initial_x = pdf.get_x()
     for number, text in list_items:
         pdf.set_x(initial_x)
-        pdf.multi_cell(0, 5, f"{number} {text}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(8, 5, number, align='L')
+        pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin - 8, 5, text, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(1)
 
     pdf.set_font_size(11)
-    pdf.ln(8)
+    pdf.ln(5)
     pdf.multi_cell(0, 8, 'について、')
     pdf.ln(1)
+    
     today = datetime.date.today()
-    date_time_str = f"{today.year}年{today.month}月{today.day}日"
+    # 実施時間
+    date_time_str = f"{today.year}年{today.month}月{today.day}日　13時00分から17時00分まで"
+    text_width = pdf.get_string_width(date_time_str)
+    start_x = (pdf.w - text_width) / 2
     pdf.cell(0, 8, date_time_str, new_x="LMARGIN", new_y="NEXT", align='C')
+    y_pos = pdf.get_y()
+    pdf.line(start_x, y_pos - 1, start_x + text_width, y_pos - 1) # アンダーライン
+    pdf.ln(6)
 
-    pdf.ln(8)
-    pdf.multi_cell(0, 8, f"特定技能所属機関（又は登録支援機関）の氏名又は名称\n{'アジア人材サポート協同組合'}")
-    pdf.ln(4)
-    pdf.multi_cell(0, 8, f"説明者の氏名\n{explainer_name}")
-    pdf.ln(8)
-    
+    # 特定技能所属機関
+    underline_length = 80
+    pdf.cell(0, 8, '特定技能所属機関（又は登録支援機関）の氏名又は名称', new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.ln(1)
+    text_to_underline = 'アジア人材サポート協同組合'
+    pdf.cell(0, 8, text_to_underline, new_x="LMARGIN", new_y="NEXT", align='R')
+    y_pos = pdf.get_y()
+    pdf.line(pdf.w - pdf.r_margin - underline_length, y_pos - 1, pdf.w - pdf.r_margin, y_pos - 1) # 右寄せアンダーライン
+    pdf.ln(6)
+
+    # 説明者の氏名
+    pdf.cell(0, 8, '説明者の氏名', new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.ln(1)
+    pdf.cell(0, 8, explainer_name, new_x="LMARGIN", new_y="NEXT", align='R')
+    y_pos = pdf.get_y()
+    pdf.line(pdf.w - pdf.r_margin - underline_length, y_pos - 1, pdf.w - pdf.r_margin, y_pos - 1) # 右寄せアンダーライン
+    pdf.ln(6)
+
     pdf.multi_cell(0, 8, 'から説明を受け、内容を十分に理解しました。')
-    pdf.ln(10)
     
+    # 署名欄 (前回同様のレイアウト)
     date_str = f"{today.year}年{today.month}月{today.day}日"
+    sig_y_pos = pdf.h - 40 # Y座標を微調整
+    pdf.set_y(sig_y_pos)
     pdf.cell(0, 8, date_str, align='R')
-    pdf.ln(15)
-
-    pdf.cell(0, 8, f"特定技能外国人の署名")
     pdf.ln(5)
-    pdf.image(temp_signature_path, x=pdf.get_x(), y=pdf.get_y(), w=60)
-    
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(45, 8, '特定技能外国人の署名')
+    line_start_x = pdf.get_x()
+    line_end_x = line_start_x + 65
+    pdf.line(line_start_x, sig_y_pos + 12, line_end_x, sig_y_pos + 12)
+    pdf.image(temp_signature_path, x=line_start_x + 5, y=sig_y_pos, w=55)
+
     pdf_output = bytes(pdf.output())
 
     try:
