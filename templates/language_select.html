@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>言語選択 / Language Selection</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #333; margin-bottom: 20px; line-height: 1.5; }
+        select { width: 100%; padding: 10px; margin-bottom: 30px; font-size: 16px; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>言語を選択してください<br>Please select your language</h1>
+        <form action="/guidance" method="POST">
+            <input type="hidden" name="token" value="{{ token }}">
+            <select name="lang" required>
+                <option value="" disabled selected>-- Select Language --</option>
+                <option value="en">English (英語)</option>
+                <option value="id">Bahasa Indonesia (インドネシア語)</option>
+                <option value="my">မြန်မာဘာသာ (ミャンマー語)</option>
+                <option value="vi">Tiếng Việt (ベトナム語)</option>
+                <option value="th">ภาษาไทย (タイ語)</option>
+            </select>
+            <button type="submit">次へ / Next</button>
+        </form>
+    </div>
+</body>
+</html>
+

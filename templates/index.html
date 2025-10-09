@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ japanese_text.title }} / {{ translations.title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    
+    <!-- ★★★ 最終修正点：必要なフォントをすべて読み込みます ★★★ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+Myanmar:wght@400;700&family=Noto+Sans+Thai:wght@400;700&family=Noto+Sans+Vietnamese:wght@400;700&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <!-- ★★★ ここまで ★★★ -->
+
+    <style>
+        body { 
+            background-color: #f0f2f5; 
+            /* 基本フォントを設定 */
+            font-family: 'Noto Sans', sans-serif; 
+        }
+
+        .page-container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+        .a4-sheet { background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; font-size: 20px; margin-bottom: 20px; }
+        
+        .bilingual-list { list-style: none; padding-left: 0; }
+        .bilingual-list li {
+            margin-bottom: 1.5em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1em;
+        }
+        .japanese-text {
+            font-family: "MS Mincho", "Hiragino Mincho ProN", 'Noto Sans JP', serif;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 0.5em 0;
+        }
+        .translated-text {
+            font-size: 15px;
+            color: #555;
+            margin: 0;
+        }
+        .final-confirmation {
+            margin-top: 2em;
+            padding-top: 1em;
+            border-top: 2px solid #333;
+        }
+        
+        /* ★★★ 最終修正点：言語ごとに専用フォントを確実に適用します ★★★ */
+        .lang-my .translated-text, .lang-my h2 .translated-text { font-family: 'Noto Sans Myanmar', sans-serif; }
+        .lang-th .translated-text, .lang-th h2 .translated-text { font-family: 'Noto Sans Thai', sans-serif; }
+        .lang-vi .translated-text, .lang-vi h2 .translated-text { font-family: 'Noto Sans Vietnamese', sans-serif; }
+        /* ★★★ ここまで ★★★ */
+
+        .signature-form { 
+            background: #fff; 
+            padding: 20px; 
+            margin-top: 20px; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+        }
+        
+        .signature-pad-container { border: 2px dashed #ccc; margin-bottom: 10px; }
+        canvas { width: 100%; height: 200px; background: #fff; }
+        .buttons { display: flex; justify-content: space-between; }
+        button { font-size: 16px; padding: 10px 15px; border-radius: 5px; border: none; cursor: pointer; }
+        #clear-button { background-color: #6c757d; color: white; }
+        button[type="submit"] { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+<div class="page-container">
+    {# ★★★ 最終修正点：言語コードをクラスとして追加します ★★★ #}
+    <div class="a4-sheet lang-{{ lang }}">
+        <h2>{{ japanese_text.title }}<br><span class="translated-text">{{ translations.title }}</span></h2>
+        
+        <ol class="bilingual-list">
+            {# ★★★ 最終修正点：TypeErrorを解決します ★★★ #}
+            {% for i in range(japanese_text['items']|length) %}
+                <li>
+                    <p class="japanese-text">{{ japanese_text['items'][i] }}</p>
+                    <p class="translated-text">{{ translations['items'][i] }}</p>
+                </li>
+            {% endfor %}
+        </ol>
+        
+        <div class="final-confirmation">
+             <p class="japanese-text">{{ japanese_text.final_confirmation }}</p>
+             <p class="translated-text">{{ translations.final_confirmation }}</p>
+        </div>
+    </div>
+
+    <div class="signature-form">
+        <form id="main-form" action="/sign" method="POST">
+            <input type="hidden" name="token" value="{{ token }}">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <p><strong>{{ translations.signature_label }} (ここに指またはマウスでサインをしてください)</strong></p>
+            <div class="signature-pad-container">
+                <canvas id="signature-canvas"></canvas>
+            </div>
+            <input type="hidden" name="signature_data" id="signature-data">
+            <input type="checkbox" id="agree" name="agree" value="on" required>
+            <label for="agree">{{ translations.agree_checkbox }}</label>
+            <br><br>
+            <div class="buttons">
+                <button type="button" id="clear-button">書き直す</button>
+                <button type="submit">{{ translations.submit_button }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const canvas = document.getElementById('signature-canvas');
+    const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext("2d").scale(ratio, ratio);
+        signaturePad.clear();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    document.getElementById('clear-button').addEventListener('click', () => { signaturePad.clear(); });
+    document.getElementById('main-form').addEventListener('submit', (event) => {
+        if (signaturePad.isEmpty()) {
+            alert("署名が入力されていません。");
+            event.preventDefault();
+        } else {
+            document.getElementById('signature-data').value = signaturePad.toDataURL('image/png');
+        }
+    });
+</script>
+</body>
+</html>
+

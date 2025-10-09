@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>説明者を選択してPDFをダウンロード</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #333; margin-bottom: 20px; }
+        p { color: #666; margin-bottom: 30px; }
+        select { width: 100%; padding: 10px; margin-bottom: 30px; font-size: 16px; }
+        button { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        button:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>署名が完了しました</h1>
+        
+        <p>最後に説明者の氏名を選択し、PDFをダウンロードしてください。</p>
+        
+        <form action="/generate-pdf" method="POST">
+            <input type="hidden" name="signature_url" value="{{ signature_url }}">
+            
+            <select name="explainer_name" required>
+                <option value="" disabled selected>-- 説明者を選択してください --</option>
+                {% for explainer in explainers %}
+                    <option value="{{ explainer }}">{{ explainer }}</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit">PDFをダウンロード</button>
+        </form>
+    </div>
+</body>
+</html>
