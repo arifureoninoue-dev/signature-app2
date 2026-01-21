@@ -104,7 +104,7 @@ TRANSLATIONS = {
 }
 EXPLAINERS = {
     "vi": ["PHAM VAN THINH", "HOANG ANH NAM"],
-    "id": ["PETRI SURYANI", "IMELDA SARIHUTAJULU", "FEBRI SAHRULLAH AHDIN", "MARISYA UTARI", "MOHAMMAD FARID HIDAYATULLAH", "VANESSA KOBAYASHI"],
+    "id": ["PETRI SURYANI", "IMELDA SARIHUTAJULU", "FEBRI SAHRULLAH AHDIN", "MARISYA UTARI", "MOHAMMAD FARID HIDAYATULLAH", "VANESSA KOBAYASHI", "ANDI PRANATA"],
     "my": ["PYO EAINDRAY MIN", "PHYOWAI ZAW"],
     "jp": ["西野 宏", "土屋 雛子"],
     "en": ["土屋 雛子"]
@@ -302,4 +302,5 @@ def generate_pdf():
         pdf_output,
         mimetype="application/pdf",
         headers={"Content-Disposition": "attachment;filename=living_orientation_signed.pdf"}
+
     )
